@@ -25,7 +25,7 @@ export default function Login() {
 
       if (data.user) {
         // Get user role from metadata
-        const { data: userData, error: userError } = await supabase
+        const { error: userError } = await supabase
           .from('users')
           .select('role')
           .eq('id', data.user.id)
