@@ -1,49 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import { Input, Button, Card } from '../components';
-import { useAuth } from '@/hooks/useAuth';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
-      toast.success('Welcome back!');
-      // Navigation will happen automatically due to the useEffect above
+      if (data.user) {
+        // Get user role from metadata
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (userError) throw userError;
+
+        toast.success('Welcome back!');
+        // Use replace to avoid history stacking
+        navigate('/dashboard', { replace: true });
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to login');
+    } finally {
       setIsLoading(false);
     }
   };
-
-  // Don't render the login form if already logged in
-  if (user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
